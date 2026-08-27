@@ -1,4 +1,4 @@
-const PRICING_DATA = [
+let PRICING_DATA = [
     { size: '8 mm', price: 393 },
     { size: '10 mm', price: 603 },
     { size: '12 mm', price: 844 },
@@ -6,6 +6,16 @@ const PRICING_DATA = [
     { size: '20 mm', price: 2348 },
     { size: '25 mm', price: 3660 }
 ];
+
+// Load saved prices from LocalStorage if they exist
+const savedPrices = localStorage.getItem('jsw_neosteel_prices');
+if (savedPrices) {
+    try {
+        PRICING_DATA = JSON.parse(savedPrices);
+    } catch (e) {
+        console.error('Failed to load saved prices', e);
+    }
+}
 
 // State to keep track of quantities
 const state = {
@@ -190,18 +200,22 @@ if (sharePdfBtn) {
         let displayPhone = cleanPhone ? `+91 ${cleanPhone}` : '';
         
         let subtotal = 0;
-        let itemsHtml = '';
+        let itemsList = [];
         
         PRICING_DATA.forEach(item => {
             const qty = state.quantities[item.size];
             if (qty > 0) {
                 const itemTotal = item.price * qty;
                 subtotal += itemTotal;
-                itemsHtml += `
-                    <div style="margin-bottom: 5px;">
-                        • <strong>${item.size}</strong>: ${qty} pcs @ ₹${item.price} = <strong>${formatCurrency(itemTotal)}</strong>
-                    </div>
-                `;
+                itemsList.push({
+                    text: [
+                        '• ',
+                        { text: item.size, bold: true },
+                        `: ${qty} pcs @ Rs. ${item.price} = `,
+                        { text: formatCurrency(itemTotal).replace('₹', 'Rs. '), bold: true }
+                    ],
+                    margin: [0, 2, 0, 2]
+                });
             }
         });
 
@@ -212,44 +226,43 @@ if (sharePdfBtn) {
 
         const discountAmount = subtotal * (state.discount / 100);
         const finalTotal = subtotal - discountAmount;
+        const dateStr = new Date().toLocaleDateString('en-IN');
 
-        // Create a temporary hidden div for the PDF content
-        const invoiceDiv = document.createElement('div');
-        invoiceDiv.style.padding = '40px';
-        invoiceDiv.style.fontFamily = "'Outfit', sans-serif";
-        invoiceDiv.style.color = '#000000';
-        invoiceDiv.style.backgroundColor = '#ffffff';
-        invoiceDiv.style.width = '600px';
-        
-        invoiceDiv.innerHTML = `
-            <div style="font-size: 16px; line-height: 1.6;">
-                <strong>JSW Neosteel Quotation</strong><br>
-                ------------------------------<br>
-                <strong>Customer:</strong> ${name}<br>
-                <strong>Phone:</strong> ${displayPhone || 'Not Provided'}<br>
-                ------------------------------<br>
-                <br>
-                <strong>Items Required:</strong><br>
-                ${itemsHtml}
-                <br>
-                ------------------------------<br>
-                <strong>Subtotal:</strong> ${formatCurrency(subtotal)}<br>
-                ${state.discount > 0 ? `<strong>Discount (${state.discount}%):</strong> -${formatCurrency(discountAmount)}<br>` : ''}
-                <strong>Final Amount:</strong> ${formatCurrency(finalTotal)}<br>
-                ------------------------------<br>
-                Thank you for choosing JSW Neosteel!
-            </div>
-        `;
-
-        document.body.appendChild(invoiceDiv);
-
-        // PDF Options
-        const opt = {
-            margin:       0.5,
-            filename:     `JSW_Quotation_${name.replace(/\s+/g, '_')}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        const docDefinition = {
+            pageSize: 'A4',
+            pageMargins: [40, 60, 40, 60],
+            defaultStyle: {
+                fontSize: 12,
+                lineHeight: 1.5
+            },
+            content: [
+                { text: 'JSW Neosteel Quotation', style: 'header' },
+                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
+                { text: '\n' },
+                { text: [ { text: 'Customer: ', bold: true }, name ] },
+                { text: [ { text: 'Phone: ', bold: true }, displayPhone || 'Not Provided' ] },
+                { text: [ { text: 'Date: ', bold: true }, dateStr ] },
+                { text: '\n' },
+                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
+                { text: '\n' },
+                { text: 'Items Required:', bold: true, margin: [0, 0, 0, 10] },
+                ...itemsList,
+                { text: '\n' },
+                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
+                { text: '\n' },
+                { text: [ { text: 'Subtotal: ', bold: true }, formatCurrency(subtotal).replace('₹', 'Rs. ') ] },
+                ...(state.discount > 0 ? [{ text: [ { text: `Discount (${state.discount}%): `, bold: true }, `-${formatCurrency(discountAmount).replace('₹', 'Rs. ')}` ] }] : []),
+                { text: [ { text: 'Final Amount: ', bold: true }, formatCurrency(finalTotal).replace('₹', 'Rs. ') ] },
+                { text: '\n' },
+                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
+                { text: '\n\nThank you for choosing JSW Neosteel!', alignment: 'center', color: '#475569' }
+            ],
+            styles: {
+                header: {
+                    fontSize: 18,
+                    bold: true
+                }
+            }
         };
 
         const originalBtnText = sharePdfBtn.innerHTML;
@@ -257,37 +270,105 @@ if (sharePdfBtn) {
         sharePdfBtn.disabled = true;
 
         try {
-            // Generate PDF as a blob
-            const pdfBlob = await html2pdf().set(opt).from(invoiceDiv).output('blob');
-            
-            // Check if Web Share API is available and can share files
-            const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'JSW Neosteel Quotation',
-                    text: 'Here is your JSW Neosteel price estimate.'
-                });
-            } else {
-                // Fallback to downloading the file if share isn't supported (e.g. desktop)
-                await html2pdf().set(opt).from(invoiceDiv).save();
-            }
+            const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+            const filename = `JSW_Quotation_${name.replace(/\s+/g, '_')}.pdf`;
+
+            pdfDocGenerator.getBlob(async (blob) => {
+                const file = new File([blob], filename, { type: 'application/pdf' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'JSW Neosteel Quotation',
+                            text: 'Here is your JSW Neosteel price estimate.'
+                        });
+                    } catch (err) {
+                        console.log('Share cancelled or failed', err);
+                    }
+                } else {
+                    // Fallback to downloading
+                    pdfDocGenerator.download(filename);
+                }
+                
+                sharePdfBtn.innerHTML = originalBtnText;
+                sharePdfBtn.disabled = false;
+            });
         } catch (error) {
-            console.error("PDF Generation/Share error:", error);
-            // Fallback just in case outputPdf('blob') fails but save() works
-            try {
-                await html2pdf().set(opt).from(invoiceDiv).save();
-            } catch (e) {
-                alert("Could not generate PDF. Please try again.");
-            }
-        } finally {
-            document.body.removeChild(invoiceDiv);
+            console.error("PDF Generation error:", error);
             sharePdfBtn.innerHTML = originalBtnText;
             sharePdfBtn.disabled = false;
+            alert("Failed to generate PDF. Please try again.");
         }
     });
 }
+
+// --- Settings Modal Logic ---
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const priceSettingsList = document.getElementById('priceSettingsList');
+
+function renderSettings() {
+    priceSettingsList.innerHTML = PRICING_DATA.map((item, index) => `
+        <div class="setting-item">
+            <label>${item.size}</label>
+            <input type="number" id="settingPrice_${index}" value="${item.price}" min="0">
+        </div>
+    `).join('');
+}
+
+const confirmModal = document.getElementById('confirmModal');
+const cancelConfirmBtn = document.getElementById('cancelConfirmBtn');
+const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+
+function initiateSave() {
+    confirmModal.classList.add('active');
+}
+
+settingsBtn.addEventListener('click', () => {
+    renderSettings();
+    settingsModal.classList.add('active');
+});
+
+cancelSettingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('active');
+});
+
+saveSettingsBtn.addEventListener('click', initiateSave);
+
+// Handle Enter key on the inputs
+priceSettingsList.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        initiateSave();
+    }
+});
+
+cancelConfirmBtn.addEventListener('click', () => {
+    confirmModal.classList.remove('active');
+});
+
+confirmSaveBtn.addEventListener('click', () => {
+    PRICING_DATA.forEach((item, index) => {
+        const input = document.getElementById(`settingPrice_${index}`);
+        if (input && input.value) {
+            item.price = parseFloat(input.value);
+        }
+    });
+    
+    // Save to LocalStorage
+    localStorage.setItem('jsw_neosteel_prices', JSON.stringify(PRICING_DATA));
+    
+    confirmModal.classList.remove('active');
+    settingsModal.classList.remove('active');
+    
+    // Re-render the main items list to reflect new prices
+    renderItems();
+    updateCalculations();
+});
+
 
 // Initial Render
 renderItems();
