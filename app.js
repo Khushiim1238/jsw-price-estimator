@@ -218,7 +218,8 @@ if (sharePdfBtn) {
         invoiceDiv.style.padding = '40px';
         invoiceDiv.style.fontFamily = "'Outfit', sans-serif";
         invoiceDiv.style.color = '#000000';
-        invoiceDiv.style.width = '600px'; 
+        invoiceDiv.style.backgroundColor = '#ffffff';
+        invoiceDiv.style.width = '600px';
         
         invoiceDiv.innerHTML = `
             <div style="font-size: 16px; line-height: 1.6;">
@@ -245,7 +246,7 @@ if (sharePdfBtn) {
         // PDF Options
         const opt = {
             margin:       0.5,
-            filename:     `JSW_Quotation_${name.replace(/\\s+/g, '_')}.pdf`,
+            filename:     `JSW_Quotation_${name.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -257,7 +258,7 @@ if (sharePdfBtn) {
 
         try {
             // Generate PDF as a blob
-            const pdfBlob = await html2pdf().set(opt).from(invoiceDiv).outputPdf('blob');
+            const pdfBlob = await html2pdf().set(opt).from(invoiceDiv).output('blob');
             
             // Check if Web Share API is available and can share files
             const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
