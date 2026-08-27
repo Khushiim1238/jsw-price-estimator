@@ -121,7 +121,9 @@ discountPercentEl.addEventListener('input', (e) => {
 // WhatsApp Formatting and Sending
 sendWhatsappBtn.addEventListener('click', () => {
     const name = customerNameEl.value.trim() || 'Customer';
-    let phone = customerPhoneEl.value.trim();
+    let rawPhone = customerPhoneEl.value.trim();
+    let cleanPhone = rawPhone.replace(/\D/g, '');
+    let displayPhone = cleanPhone ? `+91 ${cleanPhone}` : '';
     
     // Calculate totals one last time to be sure
     let subtotal = 0;
@@ -148,7 +150,7 @@ sendWhatsappBtn.addEventListener('click', () => {
     let message = `*JSW Neosteel Quotation*\n`;
     message += `------------------------------\n`;
     message += `*Customer:* ${name}\n`;
-    if(phone) message += `*Phone:* ${phone}\n`;
+    if(displayPhone) message += `*Phone:* ${displayPhone}\n`;
     message += `------------------------------\n\n`;
     
     message += `*Items Required:*\n`;
@@ -168,10 +170,8 @@ sendWhatsappBtn.addEventListener('click', () => {
     
     // Attempt to open WhatsApp
     let whatsappUrl = '';
-    if (phone) {
-        // Strip out any non-digit characters
-        phone = phone.replace(/\D/g, '');
-        whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    if (cleanPhone) {
+        whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodedMessage}`;
     } else {
         // If no phone number provided, just let them pick contact
         whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
@@ -185,7 +185,9 @@ const sharePdfBtn = document.getElementById('sharePdfBtn');
 if (sharePdfBtn) {
     sharePdfBtn.addEventListener('click', async () => {
         const name = customerNameEl.value.trim() || 'Customer';
-        const phone = customerPhoneEl.value.trim();
+        let rawPhone = customerPhoneEl.value.trim();
+        let cleanPhone = rawPhone.replace(/\D/g, '');
+        let displayPhone = cleanPhone ? `+91 ${cleanPhone}` : '';
         
         let subtotal = 0;
         let itemsHtml = '';
@@ -196,12 +198,9 @@ if (sharePdfBtn) {
                 const itemTotal = item.price * qty;
                 subtotal += itemTotal;
                 itemsHtml += `
-                    <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${item.size}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${qty}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${item.price}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatCurrency(itemTotal)}</td>
-                    </tr>
+                    <div style="margin-bottom: 5px;">
+                        • <strong>${item.size}</strong>: ${qty} pcs @ ₹${item.price} = <strong>${formatCurrency(itemTotal)}</strong>
+                    </div>
                 `;
             }
         });
@@ -213,63 +212,31 @@ if (sharePdfBtn) {
 
         const discountAmount = subtotal * (state.discount / 100);
         const finalTotal = subtotal - discountAmount;
-        const dateStr = new Date().toLocaleDateString('en-IN');
 
         // Create a temporary hidden div for the PDF content
         const invoiceDiv = document.createElement('div');
         invoiceDiv.style.padding = '40px';
         invoiceDiv.style.fontFamily = "'Outfit', sans-serif";
-        invoiceDiv.style.color = '#0f172a';
-        invoiceDiv.style.width = '800px'; // fixed width for consistent PDF
+        invoiceDiv.style.color = '#000000';
+        invoiceDiv.style.width = '600px'; 
         
         invoiceDiv.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1d4ed8; padding-bottom: 20px; margin-bottom: 30px;">
-                <div>
-                    <h1 style="color: #1d4ed8; margin: 0; font-size: 28px;">JSW NEOSTEEL</h1>
-                    <p style="margin: 5px 0 0; color: #475569; font-size: 16px;">Price Estimate</p>
-                </div>
-                <div style="text-align: right;">
-                    <p style="margin: 0; font-weight: bold; font-size: 18px;">${name}</p>
-                    <p style="margin: 5px 0 0; color: #475569;">${phone || 'No Phone Provided'}</p>
-                    <p style="margin: 5px 0 0; color: #475569;">Date: ${dateStr}</p>
-                </div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="padding: 12px 10px; text-align: left; border-bottom: 2px solid #cbd5e1;">Section</th>
-                        <th style="padding: 12px 10px; text-align: center; border-bottom: 2px solid #cbd5e1;">Qty (pcs)</th>
-                        <th style="padding: 12px 10px; text-align: right; border-bottom: 2px solid #cbd5e1;">Rate</th>
-                        <th style="padding: 12px 10px; text-align: right; border-bottom: 2px solid #cbd5e1;">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itemsHtml}
-                </tbody>
-            </table>
-
-            <div style="display: flex; justify-content: flex-end;">
-                <div style="width: 350px;">
-                    <div style="display: flex; justify-content: space-between; padding: 10px 0;">
-                        <span style="color: #475569;">Subtotal</span>
-                        <span>${formatCurrency(subtotal)}</span>
-                    </div>
-                    ${state.discount > 0 ? `
-                    <div style="display: flex; justify-content: space-between; padding: 10px 0; color: #dc2626;">
-                        <span>Discount (${state.discount}%)</span>
-                        <span>- ${formatCurrency(discountAmount)}</span>
-                    </div>
-                    ` : ''}
-                    <div style="display: flex; justify-content: space-between; padding: 15px 0; border-top: 2px solid #cbd5e1; font-weight: bold; font-size: 20px; color: #1d4ed8; margin-top: 5px;">
-                        <span>Final Total</span>
-                        <span>${formatCurrency(finalTotal)}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 50px; text-align: center; color: #475569; font-size: 14px;">
-                <p>Thank you for choosing JSW Neosteel!</p>
+            <div style="font-size: 16px; line-height: 1.6;">
+                <strong>JSW Neosteel Quotation</strong><br>
+                ------------------------------<br>
+                <strong>Customer:</strong> ${name}<br>
+                <strong>Phone:</strong> ${displayPhone || 'Not Provided'}<br>
+                ------------------------------<br>
+                <br>
+                <strong>Items Required:</strong><br>
+                ${itemsHtml}
+                <br>
+                ------------------------------<br>
+                <strong>Subtotal:</strong> ${formatCurrency(subtotal)}<br>
+                ${state.discount > 0 ? `<strong>Discount (${state.discount}%):</strong> -${formatCurrency(discountAmount)}<br>` : ''}
+                <strong>Final Amount:</strong> ${formatCurrency(finalTotal)}<br>
+                ------------------------------<br>
+                Thank you for choosing JSW Neosteel!
             </div>
         `;
 
