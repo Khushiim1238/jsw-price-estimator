@@ -285,6 +285,8 @@ if (sharePdfBtn) {
                         });
                     } catch (err) {
                         console.log('Share cancelled or failed', err);
+                        // Fallback to downloading if share fails
+                        pdfDocGenerator.download(filename);
                     }
                 } else {
                     // Fallback to downloading
