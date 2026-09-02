@@ -204,6 +204,7 @@ sendWhatsappBtn.addEventListener('click', () => {
     
     // Calculate totals one last time to be sure
     let subtotal = 0;
+    let itemsText = '';
     const currentPricing = getActivePricing();
     const currentQuantities = getActiveQuantities();
     const brandName = getActiveBrandName();
@@ -435,7 +436,21 @@ if (sharePdfBtn) {
             pdfDocGenerator.getBlob(async (blob) => {
                 const file = new File([blob], filename, { type: 'application/pdf' });
                 
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                // 1. Download the PDF directly
+                pdfDocGenerator.download(filename);
+                
+                // 2. If phone number exists, open WhatsApp chat automatically
+                if (cleanPhone) {
+                    const message = encodeURIComponent(`Here is your ${brandName} quotation. Please find the attached PDF.`);
+                    const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${message}`;
+                    
+                    // Small delay to ensure the download starts before opening the new tab
+                    setTimeout(() => {
+                        window.open(whatsappUrl, '_blank');
+                    }, 500);
+                } 
+                // 3. Fallback to native share menu if no phone number was entered
+                else if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
                             files: [file],
@@ -444,12 +459,7 @@ if (sharePdfBtn) {
                         });
                     } catch (err) {
                         console.log('Share cancelled or failed', err);
-                        // Fallback to downloading if share fails
-                        pdfDocGenerator.download(filename);
                     }
-                } else {
-                    // Fallback to downloading
-                    pdfDocGenerator.download(filename);
                 }
                 
                 sharePdfBtn.innerHTML = originalBtnText;
