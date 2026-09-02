@@ -1,32 +1,52 @@
-let PRICING_DATA = [
-    { size: '8 mm', price: 393 },
-    { size: '10 mm', price: 603 },
-    { size: '12 mm', price: 844 },
-    { size: '16 mm', price: 1502 },
-    { size: '20 mm', price: 2348 },
-    { size: '25 mm', price: 3660 }
-];
+// Pricing Data Store
+let BRAND_DATA = {
+    jsw: [
+        { size: '8 mm', price: 393 },
+        { size: '10 mm', price: 603 },
+        { size: '12 mm', price: 844 },
+        { size: '16 mm', price: 1502 },
+        { size: '20 mm', price: 2348 },
+        { size: '25 mm', price: 3660 }
+    ],
+    elegant: [
+        { size: '6 mm', price: 241 },
+        { size: '8 mm', price: 409 },
+        { size: '10 mm', price: 626 },
+        { size: '12 mm', price: 884 },
+        { size: '16 mm', price: 1573 },
+        { size: '20 mm', price: 2460 },
+        { size: '25 mm', price: 3834 }
+    ]
+};
 
 // Load saved prices from LocalStorage if they exist
-const savedPrices = localStorage.getItem('jsw_neosteel_prices');
-if (savedPrices) {
-    try {
-        PRICING_DATA = JSON.parse(savedPrices);
-    } catch (e) {
-        console.error('Failed to load saved prices', e);
-    }
+const savedJsw = localStorage.getItem('jsw_neosteel_prices');
+const savedElegant = localStorage.getItem('elegant_prices');
+if (savedJsw) {
+    try { BRAND_DATA.jsw = JSON.parse(savedJsw); } catch (e) { console.error('Failed to load JSW prices', e); }
+}
+if (savedElegant) {
+    try { BRAND_DATA.elegant = JSON.parse(savedElegant); } catch (e) { console.error('Failed to load Elegant prices', e); }
 }
 
-// State to keep track of quantities
+// State
 const state = {
-    quantities: {},
+    activeBrand: 'jsw',
+    quantities: {
+        jsw: {},
+        elegant: {}
+    },
     discount: 0
 };
 
 // Initialize quantities to 0
-PRICING_DATA.forEach(item => {
-    state.quantities[item.size] = 0;
-});
+BRAND_DATA.jsw.forEach(item => state.quantities.jsw[item.size] = 0);
+BRAND_DATA.elegant.forEach(item => state.quantities.elegant[item.size] = 0);
+
+// Helper to get active pricing array
+const getActivePricing = () => BRAND_DATA[state.activeBrand];
+const getActiveQuantities = () => state.quantities[state.activeBrand];
+const getActiveBrandName = () => state.activeBrand === 'jsw' ? 'JSW Neosteel' : 'Elegant Steel';
 
 // DOM Elements
 const itemsListEl = document.getElementById('itemsList');
@@ -48,12 +68,58 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+// Dropdown Logic
+const brandDropdownBtn = document.getElementById('brandDropdownBtn');
+const brandDropdownMenu = document.getElementById('brandDropdownMenu');
+const activeBrandLogo = document.getElementById('activeBrandLogo');
+const activeBrandName = document.getElementById('activeBrandName');
+
+brandDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    brandDropdownMenu.classList.toggle('active');
+    brandDropdownBtn.classList.toggle('open');
+});
+
+document.addEventListener('click', () => {
+    brandDropdownMenu.classList.remove('active');
+    brandDropdownBtn.classList.remove('open');
+});
+
+document.querySelectorAll('.brand-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+        const selectedBrand = option.dataset.brand;
+        if (state.activeBrand === selectedBrand) return; // No change
+
+        // Update UI State
+        document.querySelectorAll('.brand-option').forEach(opt => opt.classList.remove('active'));
+        option.classList.add('active');
+        
+        state.activeBrand = selectedBrand;
+        document.body.dataset.brand = selectedBrand;
+        
+        // Update header logo/name
+        if (selectedBrand === 'jsw') {
+            activeBrandLogo.src = 'images.png';
+        } else {
+            activeBrandLogo.src = 'elegant-steel-logo.png';
+        }
+        activeBrandLogo.style.display = 'block';
+        activeBrandName.style.display = 'none';
+
+        // Re-render
+        renderItems();
+        updateCalculations();
+    });
+});
+
 // Render Items
 function renderItems() {
     itemsListEl.innerHTML = '';
+    const currentPricing = getActivePricing();
+    const currentQuantities = getActiveQuantities();
     
-    PRICING_DATA.forEach((item, index) => {
-        const itemTotal = item.price * state.quantities[item.size];
+    currentPricing.forEach((item, index) => {
+        const itemTotal = item.price * (currentQuantities[item.size] || 0);
         
         const row = document.createElement('div');
         row.className = 'item-row';
@@ -67,7 +133,7 @@ function renderItems() {
                     type="number" 
                     min="0" 
                     placeholder="0" 
-                    value="${state.quantities[item.size] || ''}"
+                    value="${currentQuantities[item.size] || ''}"
                     data-size="${item.size}"
                     class="qty-input"
                 >
@@ -85,19 +151,20 @@ function renderItems() {
         input.addEventListener('input', (e) => {
             let val = parseInt(e.target.value);
             if (isNaN(val) || val < 0) val = 0;
-            state.quantities[e.target.dataset.size] = val;
+            state.quantities[state.activeBrand][e.target.dataset.size] = val;
             updateCalculations();
         });
     });
 }
 
-// Update Totals
 function updateCalculations() {
     let subtotal = 0;
+    const currentPricing = getActivePricing();
+    const currentQuantities = getActiveQuantities();
     
     // Update individual item totals
-    PRICING_DATA.forEach((item, index) => {
-        const qty = state.quantities[item.size];
+    currentPricing.forEach((item, index) => {
+        const qty = currentQuantities[item.size] || 0;
         const itemTotal = item.price * qty;
         subtotal += itemTotal;
         
@@ -137,10 +204,12 @@ sendWhatsappBtn.addEventListener('click', () => {
     
     // Calculate totals one last time to be sure
     let subtotal = 0;
-    let itemsText = '';
+    const currentPricing = getActivePricing();
+    const currentQuantities = getActiveQuantities();
+    const brandName = getActiveBrandName();
     
-    PRICING_DATA.forEach(item => {
-        const qty = state.quantities[item.size];
+    currentPricing.forEach(item => {
+        const qty = currentQuantities[item.size] || 0;
         if (qty > 0) {
             const itemTotal = item.price * qty;
             subtotal += itemTotal;
@@ -157,7 +226,7 @@ sendWhatsappBtn.addEventListener('click', () => {
     const finalTotal = subtotal - discountAmount;
 
     // Build the message text
-    let message = `*JSW Neosteel Quotation*\n`;
+    let message = `*${brandName} Quotation*\n`;
     message += `------------------------------\n`;
     message += `*Customer:* ${name}\n`;
     if(displayPhone) message += `*Phone:* ${displayPhone}\n`;
@@ -174,7 +243,7 @@ sendWhatsappBtn.addEventListener('click', () => {
     
     message += `*Final Amount:* ${formatCurrency(finalTotal)}\n`;
     message += `------------------------------\n`;
-    message += `Thank you for choosing JSW Neosteel!`;
+    message += `Thank you for choosing ${brandName}!`;
 
     const encodedMessage = encodeURIComponent(message);
     
@@ -209,6 +278,9 @@ if (sharePdfBtn) {
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext("2d");
+                    // Fill with white background first to prevent transparent PNGs from turning black
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
                     resolve(canvas.toDataURL("image/png"));
                 };
@@ -223,10 +295,23 @@ if (sharePdfBtn) {
 
         let logoBase64 = null;
         try {
-            logoBase64 = await getBase64ImageFromURL('images.png');
+            if (state.activeBrand === 'jsw') {
+                logoBase64 = await getBase64ImageFromURL('images.png');
+            } else if (state.activeBrand === 'elegant') {
+                logoBase64 = await getBase64ImageFromURL('elegant-steel-logo.png');
+            }
         } catch (e) {
             console.error("Could not load logo for PDF", e);
         }
+
+        const currentPricing = getActivePricing();
+        const currentQuantities = getActiveQuantities();
+        const brandName = getActiveBrandName();
+        const brandColor = state.activeBrand === 'jsw' ? '#1d4ed8' : '#dc2626'; // JSW Blue or Elegant Deep Red
+        
+        // Colors for Elegant PDF table
+        const altRowColor = state.activeBrand === 'jsw' ? '#f8fafc' : '#f1f5f9';
+        const pdfBorderColor = state.activeBrand === 'jsw' ? '#e2e8f0' : '#cbd5e1';
 
         let subtotal = 0;
         let tableBody = [
@@ -238,8 +323,8 @@ if (sharePdfBtn) {
             ]
         ];
         
-        PRICING_DATA.forEach(item => {
-            const qty = state.quantities[item.size];
+        currentPricing.forEach(item => {
+            const qty = currentQuantities[item.size] || 0;
             if (qty > 0) {
                 const itemTotal = item.price * qty;
                 subtotal += itemTotal;
@@ -272,7 +357,7 @@ if (sharePdfBtn) {
             },
             content: [
                 // Header with Logo
-                logoBase64 ? { image: logoBase64, width: 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: 'JSW Neosteel Quotation', style: 'header', alignment: 'center' },
+                logoBase64 ? { image: logoBase64, width: 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: `${brandName} Quotation`, style: 'header', alignment: 'center' },
                 { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
                 { text: '\n' },
                 {
@@ -293,7 +378,7 @@ if (sharePdfBtn) {
                     },
                     layout: {
                         fillColor: function (rowIndex) {
-                            return (rowIndex === 0) ? '#1d4ed8' : (rowIndex % 2 !== 0 ? '#f8fafc' : null);
+                            return (rowIndex === 0) ? brandColor : (rowIndex % 2 !== 0 ? altRowColor : null);
                         },
                         hLineWidth: function (i, node) {
                             return (i === 0 || i === node.table.body.length) ? 0 : 1;
@@ -302,7 +387,7 @@ if (sharePdfBtn) {
                             return 0;
                         },
                         hLineColor: function (i, node) {
-                            return '#e2e8f0';
+                            return pdfBorderColor;
                         },
                         paddingTop: function(i, node) { return 8; },
                         paddingBottom: function(i, node) { return 8; },
@@ -319,21 +404,21 @@ if (sharePdfBtn) {
                         body: [
                             [ { text: 'Subtotal:', alignment: 'right', margin: [0, 5, 10, 5] }, { text: formatCurrency(subtotal).replace('₹', 'Rs. '), alignment: 'right', margin: [0, 5, 0, 5] } ],
                             ...(state.discount > 0 ? [[ { text: `Discount (${state.discount}%):`, alignment: 'right', margin: [0, 5, 10, 5], color: '#dc2626' }, { text: `-${formatCurrency(discountAmount).replace('₹', 'Rs. ')}`, alignment: 'right', margin: [0, 5, 0, 5], color: '#dc2626' } ]] : []),
-                            [ { text: 'Final Amount:', bold: true, alignment: 'right', margin: [0, 5, 10, 5] }, { text: formatCurrency(finalTotal).replace('₹', 'Rs. '), bold: true, alignment: 'right', margin: [0, 5, 0, 5], fontSize: 13, color: '#1d4ed8' } ]
+                            [ { text: 'Final Amount:', bold: true, alignment: 'right', margin: [0, 5, 10, 5] }, { text: formatCurrency(finalTotal).replace('₹', 'Rs. '), bold: true, alignment: 'right', margin: [0, 5, 0, 5], fontSize: 13, color: brandColor } ]
                         ]
                     },
                     layout: 'noBorders',
                     margin: [0, 10, 0, 20]
                 },
                 
-                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#e2e8f0' }] },
-                { text: '\nThank you for choosing JSW Neosteel!', alignment: 'center', color: '#475569', margin: [0, 10, 0, 0] }
+                { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: pdfBorderColor }] },
+                { text: `\nThank you for choosing ${brandName}!`, alignment: 'center', color: '#475569', margin: [0, 10, 0, 0] }
             ],
             styles: {
                 header: {
                     fontSize: 18,
                     bold: true,
-                    color: '#1d4ed8'
+                    color: brandColor
                 },
                 tableHeader: {
                     bold: true,
@@ -345,7 +430,7 @@ if (sharePdfBtn) {
 
         try {
             const pdfDocGenerator = pdfMake.createPdf(docDefinition);
-            const filename = `JSW_Quotation_${name.replace(/\s+/g, '_')}.pdf`;
+            const filename = `${brandName.replace(/\s+/g, '_')}_Quotation_${name.replace(/\s+/g, '_')}.pdf`;
 
             pdfDocGenerator.getBlob(async (blob) => {
                 const file = new File([blob], filename, { type: 'application/pdf' });
@@ -354,8 +439,8 @@ if (sharePdfBtn) {
                     try {
                         await navigator.share({
                             files: [file],
-                            title: 'JSW Neosteel Quotation',
-                            text: 'Here is your JSW Neosteel price estimate.'
+                            title: `${brandName} Quotation`,
+                            text: `Here is your ${brandName} price estimate.`
                         });
                     } catch (err) {
                         console.log('Share cancelled or failed', err);
@@ -387,7 +472,8 @@ const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const priceSettingsList = document.getElementById('priceSettingsList');
 
 function renderSettings() {
-    priceSettingsList.innerHTML = PRICING_DATA.map((item, index) => `
+    const currentPricing = getActivePricing();
+    priceSettingsList.innerHTML = currentPricing.map((item, index) => `
         <div class="setting-item">
             <label>${item.size}</label>
             <input type="number" id="settingPrice_${index}" value="${item.price}" min="0">
@@ -427,15 +513,17 @@ cancelConfirmBtn.addEventListener('click', () => {
 });
 
 confirmSaveBtn.addEventListener('click', () => {
-    PRICING_DATA.forEach((item, index) => {
+    const currentPricing = getActivePricing();
+    currentPricing.forEach((item, index) => {
         const input = document.getElementById(`settingPrice_${index}`);
         if (input && input.value) {
             item.price = parseFloat(input.value);
         }
     });
     
-    // Save to LocalStorage
-    localStorage.setItem('jsw_neosteel_prices', JSON.stringify(PRICING_DATA));
+    // Save to LocalStorage based on active brand
+    const storageKey = state.activeBrand === 'jsw' ? 'jsw_neosteel_prices' : 'elegant_prices';
+    localStorage.setItem(storageKey, JSON.stringify(currentPricing));
     
     confirmModal.classList.remove('active');
     settingsModal.classList.remove('active');

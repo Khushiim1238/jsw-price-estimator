@@ -19,14 +19,32 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body data-brand="jsw">
     <div class="app-container">
         <header class="glass-header" style="padding-bottom: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px;">
-                <div class="logo" style="margin-bottom: 0; flex-shrink: 0;">
-                    <img src="images.png" alt="JSW Neosteel Logo" class="logo-img" style="max-width: 110px;">
+                <div style="width: 34px;"></div> <!-- Spacer to balance settings button -->
+                
+                <!-- Custom Brand Dropdown -->
+                <div class="brand-dropdown-container">
+                    <button id="brandDropdownBtn" class="brand-dropdown-btn">
+                        <img src="images.png" alt="JSW" id="activeBrandLogo" class="dropdown-logo-main">
+                        <span id="activeBrandName" class="dropdown-brand-name" style="display:none;">JSW Neosteel</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div id="brandDropdownMenu" class="brand-dropdown-menu">
+                        <div class="brand-option active" data-brand="jsw">
+                            <img src="images.png" alt="JSW" class="dropdown-logo-menu">
+                            <span>JSW Neosteel</span>
+                        </div>
+                        <div class="brand-option" data-brand="elegant">
+                            <img src="elegant-steel-logo.png" alt="Elegant" class="dropdown-logo-menu">
+                            <span>Elegant Steel</span>
+                        </div>
+                    </div>
                 </div>
-                <h1 style="margin: 0; font-size: 1.1rem; text-align: center; flex: 1;">Price Estimator</h1>
                 <button id="settingsBtn" class="settings-btn" title="Edit Base Prices" style="background: none; border: none; cursor: pointer; color: var(--text-primary); transition: transform 0.2s; padding: 5px; flex-shrink: 0;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -97,7 +115,7 @@
                     </svg>
                     Send WhatsApp Text
                 </button>
-                <button id="sharePdfBtn" class="primary-btn pdf-btn" style="background: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
+                <button id="sharePdfBtn" class="primary-btn pdf-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>

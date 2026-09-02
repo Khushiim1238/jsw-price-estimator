@@ -14,6 +14,22 @@
     --radius-md: 12px;
     --radius-sm: 8px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --pdf-btn-bg: #dc2626; /* JSW Red for PDF button */
+    --pdf-btn-shadow: rgba(220, 38, 38, 0.4);
+    --pdf-btn-hover-bg: #b91c1c; 
+    --pdf-btn-hover-shadow: rgba(220, 38, 38, 0.5);
+}
+
+body[data-brand="elegant"] {
+    --accent: #dc2626; /* Deep Red */
+    --accent-hover: #b91c1c;
+    --success: #dc2626;
+    --bg-gradient: #f1f5f9; /* Slate grey background */
+    --panel-border: #cbd5e1; /* Grey borders */
+    --pdf-btn-bg: #475569; /* Grey for Elegant PDF button */
+    --pdf-btn-shadow: rgba(71, 85, 105, 0.4);
+    --pdf-btn-hover-bg: #334155; 
+    --pdf-btn-hover-shadow: rgba(71, 85, 105, 0.5);
 }
 
 * {
@@ -55,14 +71,112 @@ body {
     padding: 20px 0;
 }
 
-.logo {
-    margin-bottom: 8px;
+/* Custom Brand Dropdown */
+.brand-dropdown-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
 }
 
-.logo-img {
+.brand-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.brand-dropdown-btn:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.dropdown-logo-main {
+    height: 55px;
     max-width: 180px;
-    height: auto;
     object-fit: contain;
+}
+
+.dropdown-logo-menu {
+    height: 45px;
+    width: 120px;
+    object-fit: contain;
+}
+
+.placeholder-logo-menu {
+    height: 25px;
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: white;
+    background: #ef4444;
+    border-radius: 4px;
+}
+
+.chevron-icon {
+    color: var(--text-secondary);
+    transition: transform 0.3s ease;
+}
+
+.brand-dropdown-btn.open .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.brand-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    min-width: 180px;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+    z-index: 100;
+}
+
+.brand-dropdown-menu.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(5px);
+}
+
+.brand-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.brand-option:first-child {
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
+}
+
+.brand-option:last-child {
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+.brand-option:hover {
+    background: #f1f5f9;
+}
+
+.brand-option.active {
+    background: #e2e8f0;
+    font-weight: 600;
 }
 
 h1 {
@@ -308,6 +422,16 @@ input::placeholder {
 
 .primary-btn:active {
     transform: translateY(0);
+}
+
+.pdf-btn {
+    background: var(--pdf-btn-bg);
+    box-shadow: 0 4px 14px var(--pdf-btn-shadow);
+}
+
+.pdf-btn:hover {
+    background: var(--pdf-btn-hover-bg);
+    box-shadow: 0 6px 20px var(--pdf-btn-hover-shadow);
 }
 
 /* Responsive adjustments */
