@@ -358,7 +358,7 @@ if (sharePdfBtn) {
             },
             content: [
                 // Header with Logo
-                logoBase64 ? { image: logoBase64, width: state.activeBrand === 'elegant' ? 220 : 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: `${brandName} Quotation`, style: 'header', alignment: 'center' },
+                logoBase64 ? { image: logoBase64, width: 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: `${brandName} Quotation`, style: 'header', alignment: 'center' },
                 { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
                 { text: '\n' },
                 {
