@@ -351,14 +351,14 @@ if (sharePdfBtn) {
 
         const docDefinition = {
             pageSize: 'A4',
-            pageMargins: [40, 40, 40, 40],
+            pageMargins: [40, 25, 40, 25],
             defaultStyle: {
-                fontSize: 11,
-                lineHeight: 1.2
+                fontSize: 10,
+                lineHeight: 1.1
             },
             content: [
                 // Header with Logo
-                logoBase64 ? { image: logoBase64, width: 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: `${brandName} Quotation`, style: 'header', alignment: 'center' },
+                logoBase64 ? { image: logoBase64, width: state.activeBrand === 'elegant' ? 220 : 150, alignment: 'center', margin: [0, 0, 0, 10] } : { text: `${brandName} Quotation`, style: 'header', alignment: 'center' },
                 { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1 }] },
                 { text: '\n' },
                 {
@@ -390,10 +390,10 @@ if (sharePdfBtn) {
                         hLineColor: function (i, node) {
                             return pdfBorderColor;
                         },
-                        paddingTop: function(i, node) { return 8; },
-                        paddingBottom: function(i, node) { return 8; },
-                        paddingLeft: function(i, node) { return 10; },
-                        paddingRight: function(i, node) { return 10; },
+                        paddingTop: function(i, node) { return 6; },
+                        paddingBottom: function(i, node) { return 6; },
+                        paddingLeft: function(i, node) { return 8; },
+                        paddingRight: function(i, node) { return 8; },
                     }
                 },
                 { text: '\n' },
@@ -417,13 +417,13 @@ if (sharePdfBtn) {
             ],
             styles: {
                 header: {
-                    fontSize: 18,
+                    fontSize: 16,
                     bold: true,
                     color: brandColor
                 },
                 tableHeader: {
                     bold: true,
-                    fontSize: 12,
+                    fontSize: 11,
                     color: 'white'
                 }
             }

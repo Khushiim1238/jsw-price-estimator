@@ -32,6 +32,11 @@ body[data-brand="elegant"] {
     --pdf-btn-hover-shadow: rgba(71, 85, 105, 0.5);
 }
 
+body[data-brand="elegant"] .dropdown-logo-main {
+    height: 75px;
+    max-width: 220px;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
